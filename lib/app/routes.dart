@@ -7,6 +7,7 @@ import '../features/auth/screens/register_screen.dart';
 import '../features/auth/screens/splash_screen.dart';
 import '../features/home/screens/home_screen.dart';
 import '../features/profile/screens/profile_screen.dart';
+import '../features/schedule/screens/schedule_screen.dart';
 import 'app_shell.dart';
 import 'go_router_refresh.dart';
 import 'providers.dart';
@@ -55,6 +56,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/home',
             name: 'home',
             builder: (context, state) => const HomeScreen(),
+          ),
+          GoRoute(
+            path: '/schedule',
+            name: 'schedule',
+            builder: (context, state) => const ScheduleScreen(),
           ),
         ],
       ),

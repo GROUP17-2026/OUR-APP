@@ -19,6 +19,7 @@ final googleSignInProvider = Provider<GoogleSignIn>(
 final firestoreServiceProvider = Provider<FirestoreService>(
   (ref) => FirestoreService(
     FirebaseFirestore.instance,
+    ref.watch(firebaseAuthProvider),
   ),
 );
 

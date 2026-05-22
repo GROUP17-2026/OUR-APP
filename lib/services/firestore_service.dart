@@ -1,12 +1,17 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import '../features/auth/models/user_profile.dart';
+import '../features/schedule/models/class_session.dart';
 
-/// Firestore access for User 1: Authentication, Home & Profile.
+/// Firestore access for Authentication, Home, Profile & Schedule.
 class FirestoreService {
-  FirestoreService(this._db);
+  FirestoreService(this._db, this._auth);
 
   final FirebaseFirestore _db;
+  final FirebaseAuth _auth;
+
+  String? get _uid => _auth.currentUser?.uid;
 
   DocumentReference<Map<String, dynamic>> userDoc(String uid) =>
       _db.collection('users').doc(uid);
@@ -24,5 +29,31 @@ class FirestoreService {
 
   Future<void> updateFcmToken(String uid, String token) {
     return userDoc(uid).set({'fcmToken': token}, SetOptions(merge: true));
+  }
+
+  Stream<List<ClassSession>> watchScheduleForDay(String uid, String dayKey) {
+    return _db
+        .collection('schedules')
+        .doc(uid)
+        .collection('classes')
+        .where('day', isEqualTo: dayKey)
+        .snapshots()
+        .map(
+          (snap) => snap.docs
+              .map((d) => ClassSession.fromMap(d.id, d.data()))
+              .toList()
+            ..sort((a, b) => a.startTime.compareTo(b.startTime)),
+        );
+  }
+
+  Future<void> saveClassSession(ClassSession session) async {
+    final uid = _uid;
+    if (uid == null) throw StateError('Not signed in');
+    final ref = _db
+        .collection('schedules')
+        .doc(uid)
+        .collection('classes')
+        .doc(session.id);
+    await ref.set(session.toMap());
   }
 }
