@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+import '../features/announcements/models/announcement.dart';
 import '../features/auth/models/user_profile.dart';
 import '../features/schedule/models/class_session.dart';
 
@@ -55,5 +56,19 @@ class FirestoreService {
         .collection('classes')
         .doc(session.id);
     await ref.set(session.toMap());
+  }
+
+  Stream<List<Announcement>> watchAnnouncements() {
+    return _db
+        .collection('announcements')
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map(
+          (s) => s.docs.map((d) => Announcement.fromMap(d.id, d.data())).toList(),
+        );
+  }
+
+  Future<void> addAnnouncement(Announcement a) async {
+    await _db.collection('announcements').doc(a.id).set(a.toMap());
   }
 }
