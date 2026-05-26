@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
+import '../features/announcements/models/announcement.dart';
 import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
 import '../services/storage_service.dart';
@@ -41,6 +42,14 @@ final userProfileStreamProvider = StreamProvider((ref) {
     return Stream.value(null);
   }
   return ref.watch(firestoreServiceProvider).watchProfile(user.uid);
+});
+
+final announcementsStreamProvider = StreamProvider<List<Announcement>>((ref) {
+  final profile = ref.watch(userProfileStreamProvider).valueOrNull;
+  return ref.watch(firestoreServiceProvider).watchAnnouncements().map((list) {
+    final faculty = profile?.faculty ?? '';
+    return list.where((a) => a.targetFaculty == 'all' || a.targetFaculty.isEmpty || a.targetFaculty == faculty).toList();
+  });
 });
 
 final storageServiceProvider = Provider<StorageService>(
