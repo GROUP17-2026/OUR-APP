@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../features/announcements/screens/announcements_screen.dart';
 import '../features/auth/screens/login_screen.dart';
 import '../features/auth/screens/register_screen.dart';
 import '../features/auth/screens/splash_screen.dart';
@@ -61,6 +62,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/schedule',
             name: 'schedule',
             builder: (context, state) => const ScheduleScreen(),
+          ),
+          GoRoute(
+            path: '/announcements',
+            name: 'announcements',
+            builder: (context, state) => const AnnouncementsScreen(),
           ),
         ],
       ),
