@@ -12,7 +12,9 @@ class AppShell extends StatelessWidget {
   static final destinations = <NavDestination>[
     (path: '/home', icon: Icons.home_rounded, label: 'Home'),
     (path: '/schedule', icon: Icons.calendar_today_rounded, label: 'Schedule'),
-    (path: '/announcements', icon: Icons.campaign_rounded, label: 'Announcements'),
+    (path: '/announcements', icon: Icons.campaign_rounded, label: 'News'),
+    (path: '/discussions', icon: Icons.forum_rounded, label: 'Chat'),
+    (path: '/resources', icon: Icons.folder_special_rounded, label: 'Files'),
   ];
 
   @override

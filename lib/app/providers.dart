@@ -5,6 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import '../features/announcements/models/announcement.dart';
+import '../features/discussions/models/discussion_group.dart';
+import '../features/events/models/campus_event.dart';
+import '../features/resources/models/campus_resource.dart';
 import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
 import '../services/storage_service.dart';
@@ -51,6 +54,26 @@ final announcementsStreamProvider = StreamProvider<List<Announcement>>((ref) {
     return list.where((a) => a.targetFaculty == 'all' || a.targetFaculty.isEmpty || a.targetFaculty == faculty).toList();
   });
 });
+
+final eventsStreamProvider = StreamProvider<List<CampusEvent>>((ref) {
+  final profile = ref.watch(userProfileStreamProvider).valueOrNull;
+  return ref.watch(firestoreServiceProvider).watchEvents().map((list) {
+    final faculty = profile?.faculty ?? '';
+    return list.where((e) => e.targetFaculty == 'all' || e.targetFaculty.isEmpty || e.targetFaculty == faculty).toList();
+  });
+});
+
+final groupsStreamProvider = StreamProvider<List<DiscussionGroup>>((ref) {
+  final profile = ref.watch(userProfileStreamProvider).valueOrNull;
+  return ref.watch(firestoreServiceProvider).watchGroups().map((list) {
+    final faculty = profile?.faculty ?? '';
+    return list.where((g) => g.targetFaculty == 'all' || g.targetFaculty.isEmpty || g.targetFaculty == faculty).toList();
+  });
+});
+
+final resourcesStreamProvider = StreamProvider<List<CampusResource>>(
+  (ref) => ref.watch(firestoreServiceProvider).watchResources(),
+);
 
 final storageServiceProvider = Provider<StorageService>(
   (ref) => StorageService(

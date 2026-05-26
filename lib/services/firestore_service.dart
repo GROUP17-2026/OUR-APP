@@ -3,6 +3,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 import '../features/announcements/models/announcement.dart';
 import '../features/auth/models/user_profile.dart';
+import '../features/discussions/models/chat_message.dart';
+import '../features/discussions/models/discussion_group.dart';
+import '../features/events/models/campus_event.dart';
+import '../features/resources/models/campus_resource.dart';
 import '../features/schedule/models/class_session.dart';
 
 /// Firestore access for Authentication, Home, Profile & Schedule.
@@ -70,5 +74,139 @@ class FirestoreService {
 
   Future<void> addAnnouncement(Announcement a) async {
     await _db.collection('announcements').doc(a.id).set(a.toMap());
+  }
+
+  Stream<List<DiscussionGroup>> watchGroups() {
+    return _db.collection('groups').orderBy('createdAt', descending: true).snapshots().map(
+          (s) => s.docs
+              .map((d) => DiscussionGroup.fromMap(d.id, d.data()))
+              .toList(),
+        );
+  }
+
+  Future<String> createGroup({
+    required String name,
+    required String description,
+    String targetFaculty = 'all',
+  }) async {
+    final uid = _uid;
+    if (uid == null) throw StateError('Not signed in');
+    final ref = await _db.collection('groups').add({
+      'name': name,
+      'description': description,
+      'members': [uid],
+      'createdBy': uid,
+      'createdAt': FieldValue.serverTimestamp(),
+      'lastMessage': '',
+      'lastMessageAt': FieldValue.serverTimestamp(),
+      'targetFaculty': targetFaculty,
+    });
+    return ref.id;
+  }
+
+  Stream<List<ChatMessage>> watchMessages(String groupId) {
+    return _db
+        .collection('groups')
+        .doc(groupId)
+        .collection('messages')
+        .orderBy('timestamp', descending: false)
+        .snapshots()
+        .map(
+          (s) => s.docs.map((d) => ChatMessage.fromMap(d.id, d.data())).toList(),
+        );
+  }
+
+  Future<void> sendMessage({
+    required String groupId,
+    required String text,
+    String? senderPhotoUrl,
+    String? fileUrl,
+    String? fileName,
+    int? fileSize,
+  }) async {
+    final uid = _uid;
+    if (uid == null) throw StateError('Not signed in');
+    final name = _auth.currentUser?.displayName ?? 'Student';
+    final batch = _db.batch();
+    final msgRef = _db
+        .collection('groups')
+        .doc(groupId)
+        .collection('messages')
+        .doc();
+    batch.set(msgRef, {
+      'text': text,
+      'senderId': uid,
+      'senderName': name,
+      'timestamp': FieldValue.serverTimestamp(),
+      'senderPhotoUrl': senderPhotoUrl,
+      'fileUrl': fileUrl,
+      'fileName': fileName,
+      'fileSize': fileSize,
+    });
+    final displayText = fileName != null ? '📎 $fileName' : text;
+    batch.set(
+      _db.collection('groups').doc(groupId),
+      {
+        'lastMessage': displayText,
+        'lastMessageAt': FieldValue.serverTimestamp(),
+        'members': FieldValue.arrayUnion([uid]),
+      },
+      SetOptions(merge: true),
+    );
+    await batch.commit();
+  }
+
+  Stream<List<CampusResource>> watchResources({String? queryText}) {
+    return _db
+        .collection('resources')
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((s) {
+      final list =
+          s.docs.map((d) => CampusResource.fromMap(d.id, d.data())).toList();
+      if (queryText == null || queryText.isEmpty) return list;
+      final q = queryText.toLowerCase();
+      return list
+          .where(
+            (r) =>
+                r.title.toLowerCase().contains(q) ||
+                r.subject.toLowerCase().contains(q),
+          )
+          .toList();
+    });
+  }
+
+  Future<void> addResource(CampusResource resource) async {
+    await _db.collection('resources').doc(resource.id).set(resource.toMap());
+  }
+
+  Stream<List<CampusEvent>> watchEvents() {
+    return _db
+        .collection('events')
+        .orderBy('date', descending: false)
+        .snapshots()
+        .map(
+          (s) => s.docs.map((d) => CampusEvent.fromMap(d.id, d.data())).toList(),
+        );
+  }
+
+  Future<void> addEvent(CampusEvent e) async {
+    await _db.collection('events').doc(e.id).set(e.toMap());
+  }
+
+  Future<void> toggleRsvp(String eventId) async {
+    final uid = _uid;
+    if (uid == null) throw StateError('Not signed in');
+    final ref = _db.collection('events').doc(eventId);
+    await _db.runTransaction((txn) async {
+      final snap = await txn.get(ref);
+      if (!snap.exists) return;
+      final list = (snap.data()?['rsvps'] as List?)?.cast<String>() ?? [];
+      if (list.contains(uid)) {
+        txn.update(ref, {'rsvps': FieldValue.arrayRemove([uid])});
+      } else {
+        txn.update(ref, {'rsvps': FieldValue.arrayUnion([uid])});
+      }
+    });
   }
 }
