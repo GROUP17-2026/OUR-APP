@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
+import '../features/discussions/models/discussion_group.dart';
 import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
 import '../services/storage_service.dart';
@@ -41,6 +42,14 @@ final userProfileStreamProvider = StreamProvider((ref) {
     return Stream.value(null);
   }
   return ref.watch(firestoreServiceProvider).watchProfile(user.uid);
+});
+
+final groupsStreamProvider = StreamProvider<List<DiscussionGroup>>((ref) {
+  final profile = ref.watch(userProfileStreamProvider).valueOrNull;
+  return ref.watch(firestoreServiceProvider).watchGroups().map((list) {
+    final faculty = profile?.faculty ?? '';
+    return list.where((g) => g.targetFaculty == 'all' || g.targetFaculty.isEmpty || g.targetFaculty == faculty).toList();
+  });
 });
 
 final storageServiceProvider = Provider<StorageService>(
